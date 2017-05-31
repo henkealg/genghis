@@ -5,6 +5,7 @@ Gemfile.lock
 
 # composer
 composer.lock
+vendor/composer
 vendor/mongodb
 vendor/autoload.php
 
