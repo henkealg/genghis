@@ -39,6 +39,12 @@ class Genghis_Json
                         '$value' => (string) $object
                     );
 
+                case 'MongoDB\\BSON\\ObjectID':
+                    return array(
+                        '$genghisType' => 'ObjectId',
+                        '$value' => (string) $object
+                    );
+
                 case 'MongoDate':
                     $str = gmdate('Y-m-d\TH:i:s', $object->sec);
                     if ($object->usec) {
@@ -105,7 +111,7 @@ class Genghis_Json
                 $value = self::getProp($object, 'value');
                 switch ($type) {
                     case 'ObjectId':
-                        return new MongoId($value);
+                        return new \MongoDB\BSON\ObjectID($value);
 
                     case 'ISODate':
                         if ($value === null) {

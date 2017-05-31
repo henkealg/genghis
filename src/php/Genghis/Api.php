@@ -1,5 +1,7 @@
 <?php
 
+require_once 'vendor/autoload.php';
+
 class Genghis_Api extends Genghis_App
 {
     // api/servers/:server/databases/:db/collections/:coll/documents/:id
@@ -94,11 +96,11 @@ class Genghis_Api extends Genghis_App
         $alerts = array();
 
         // check php status
-        if (!class_exists('Mongo', false)) {
+        if (!class_exists('\\MongoDB\\Client')) {
             $alerts[] = array(
                 'level' => 'error',
-                'msg'   => '<h4>Mongo PHP class not found.</h4> ' .
-                           'Have you installed and enabled the <strong>PECL Mongo drivers</strong>?',
+                'msg'   => '<h4>Mongo PHP class library not found.</h4> ' .
+                           'Have you installed and enabled the <strong>Mongo drivers & runned conposer update</strong>?',
             );
         }
 

@@ -42,8 +42,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     public function offsetExists($name)
     {
         $list = $this->listDBs();
-        foreach ($list['databases'] as $db) {
-            if ($db['name'] === $name) {
+        foreach ($list as $db) {
+            if ($db->getName() === $name) {
                 return true;
             }
         }
@@ -67,8 +67,7 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     public function getConnection()
     {
         if (!isset($this->connection)) {
-            $class = class_exists('MongoClient') ? 'MongoClient' : 'Mongo';
-            $this->connection = new $class($this->dsn, array_merge($this->defaultOptions, $this->options));
+            $this->connection = new MongoDB\Client($this->dsn, array_merge($this->defaultOptions, $this->options));
         }
 
         return $this->connection;
@@ -81,15 +80,19 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
         }
 
         try {
-            $db = $this->connection->selectDB($name);
+            $db = $this->connection->selectDatabase($name);
         } catch (Exception $e) {
             if (strpos($e->getMessage(), 'invalid name') !== false) {
                 throw new Genghis_HttpException(400, 'Invalid database name');
             }
             throw $e;
         }
+        // create a collection and then drop it again to create the actual database
+        $db->createCollection('defaultCollection');
 
-        $db->selectCollection('__genghis_tmp_collection__')->drop();
+        // collection was dropped initially to create an empty database
+        // with the current php driver this is no longer possible
+        // defaultCollection stays
 
         return $this[$name];
     }
@@ -98,8 +101,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     {
         $dbs = array();
         $list = $this->listDBs();
-        foreach ($list['databases'] as $db) {
-            $dbs[] = $this[$db['name']];
+        foreach ($list as $db) {
+            $dbs[] = $this[$db->getName()];
         }
 
         return $dbs;
@@ -109,8 +112,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     {
         $names = array();
         $list = $this->listDBs();
-        foreach ($list['databases'] as $db) {
-            $names[] = $db['name'];
+        foreach ($list as $db) {
+            $names[] = $db->getName();
         }
 
         return $names;
@@ -142,17 +145,15 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
 
         try {
             $res = $this->listDBs();
-
-            if (isset($res['errmsg'])) {
+            if (is_array($res) && isset($res['errmsg'])) {
                 $server['error'] = sprintf("Unable to connect to Mongo server at '%s': %s", $this->name, $res['errmsg']);
 
                 return $server;
             }
 
             $dbs = $this->getDatabaseNames();
-
             return array_merge($server, array(
-                'size'      => $res['totalSize'],
+                'size'      => 0, // todo: size set to 0 as of now. where do I get this value?
                 'count'     => count($dbs),
                 'databases' => $dbs,
             ));
@@ -234,7 +235,7 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
         // Fake it if we've got a single-db connection.
         if (isset($this->db)) {
             $stats = $this->getConnection()
-                ->selectDB($this->db)
+                ->selectDatabase($this->db)
                 ->command(array('dbStats' => true));
 
             return array(
@@ -243,6 +244,6 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
             );
         }
 
-        return $this->getConnection()->listDBs();
+        return $this->getConnection()->listDatabases();
     }
 }
