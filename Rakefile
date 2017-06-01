@@ -90,6 +90,7 @@ file tmp_dir+'style.css' => FileList[
        * http://genghisapp.com
        *
        * @author Justin Hileman <justin@justinhileman.info>
+       * Ported for php7 by Henrik Algmark  <henrik@appendus.se>
        */
     doc
 
