@@ -1,4 +1,4 @@
-## v2.4 (Unofficial)
+## v2.4-beta (Unofficial)
 
  * PHP version ported to the latest PECL MongoDB driver extension, adding support for PHP7
 
