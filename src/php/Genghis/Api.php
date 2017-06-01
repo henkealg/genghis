@@ -1,6 +1,6 @@
 <?php
 
-require_once 'vendor/autoload.php';
+@include 'vendor/autoloads.php';
 
 class Genghis_Api extends Genghis_App
 {
@@ -100,7 +100,8 @@ class Genghis_Api extends Genghis_App
             $alerts[] = array(
                 'level' => 'error',
                 'msg'   => '<h4>Mongo PHP class library not found.</h4> ' .
-                           'Have you installed and enabled the <strong>Mongo drivers & runned conposer update</strong>?',
+                           'Have you installed and enabled the <strong>Mongo PHP drivers (sudo pecl install mongodb)</strong>
+                            and installed the <strong>MongoDB driver library</strong> (composer update)?',
             );
         }
 
