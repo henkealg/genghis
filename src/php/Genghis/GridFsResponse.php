@@ -8,7 +8,9 @@ class Genghis_GridFsResponse extends Genghis_Response
         $this->headers['Content-type']        = 'application/octet-stream';
         $this->headers['Content-Disposition'] = 'attachment';
 
-        if (1 == 2) {
+        $filename = $this->data['name'];
+
+        if (strlen($filename) > 0) {
             $this->headers['Content-Disposition'] .= sprintf('; filename="%s"', $filename);
         }
 
@@ -18,7 +20,7 @@ class Genghis_GridFsResponse extends Genghis_Response
     public function renderContent()
     {
         // todo: a better way of handling stream to download
-        $stream = stream_get_contents($this->data);
+        $stream = stream_get_contents($this->data['stream']);
 
         $exp = explode(',', $stream);
         $base64 = array_pop($exp);

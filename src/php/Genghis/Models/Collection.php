@@ -79,6 +79,10 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
+        // make response into an array to include the filename
+        $doc = $this->getGrid()->findOne(array('_id' => $mongoId));
+        $file = array('name' => $doc['filename'], 'stream' => $file);
+
         return $file;
     }
 
