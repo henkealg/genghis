@@ -153,7 +153,7 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
 
             $dbs = $this->getDatabaseNames();
             return array_merge($server, array(
-                'size'      => 0, // todo: size set to 0 as of now. where do I get this value?
+                'size'      => 1, // todo: size set to 0 as of now. where do we get this value?
                 'count'     => count($dbs),
                 'databases' => $dbs,
             ));
@@ -233,11 +233,12 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     private function listDBs()
     {
         // Fake it if we've got a single-db connection.
+        // todo: stats returns a mongo cursor that needs to be handled
+        // todo: when is this part triggered?
         if (isset($this->db)) {
             $stats = $this->getConnection()
                 ->selectDatabase($this->db)
-                ->command(array('dbStats' => true));
-
+                ->command(array('dbStats'));
             return array(
                 'totalSize' => $stats['fileSize'],
                 'databases' => array(array('name' => $this->db)),

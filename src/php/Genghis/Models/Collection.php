@@ -197,20 +197,20 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
     {
         $this->collCon->drop();
     }
-
-    // todo: count, indexes and stats are missing
+    // todo: index count and details are missing
     public function asJson()
     {
         $name  = $this->collection->getName();
         $colls = $this->database->database->listCollections();
         foreach ($colls as $coll) {
             if ($coll->getName() == $name) {
+                $stats = $this->stats();
                 return array(
                     'id'      => $coll->getName(),
                     'name'    => $coll->getName(),
-                    'count'   => 0, //$coll->count(),
+                    'count'   => $stats['count'], //$coll->count(),
                     'indexes' => 0, // $coll->getIndexInfo(),
-                    'stats'   => $this->stats(),
+                    'stats'   => $stats,
                 );
             }
         }
@@ -271,7 +271,9 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
 
     private function stats()
     {
-        return $this->database->database->command(array('collStats' => $this->collection->getName()));
+        $stats = $this->database->database->command(array('collStats' => $this->collection->getName()));
+        foreach($stats as $stat) $s = $stat;
+        return isset($s) && !empty($s) ? $s : array();
     }
 
     private static function safe()

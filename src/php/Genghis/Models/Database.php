@@ -153,7 +153,9 @@ class Genghis_Models_Database implements ArrayAccess, Genghis_JsonEncodable
 
     private function stats()
     {
-        return $this->getDatabase()->command(array('dbStats' => 1));
+        $stats = $this->getDatabase()->command(array('dbStats' => 1));
+        foreach ($stats as $stat) $s = $stat;
+        return isset($s) && !empty($s) ? $s : array();
     }
 
     private function cleanError($msg)
