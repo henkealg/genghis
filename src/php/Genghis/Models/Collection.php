@@ -116,10 +116,7 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         // create a stream resource from the file string
         $fileStream = fopen('data://text/plain;base64,' . base64_encode($file),'r');
 
-        // todo: this here
-        // $id = $grid->storeBytes($this->decodeFile($file), $extra);
         $id = $grid->uploadFromStream($doc->filename, $fileStream , $extra);
-
 
         return $this->findDocument( (string)$id );
     }
@@ -128,20 +125,18 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
     {
         $mongoId = $this->thunkMongoId($id);
         if (!$mongoId instanceof MongoDB\BSON\ObjectID) {
-            // for some reason this only works with MongoIds?
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
         $grid = $this->getGrid();
 
-        // For some reason it'll happily delete something that doesn't exist :-/
-        $file = $grid->get($mongoId);
-        if (!$file) {
+        $file = $grid->findOne(array('_id' => $mongoId));
+        if (empty($file)) {
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
         $result = $grid->delete($mongoId);
-        if (!$result) {
+        if ($result instanceof MongoDB\GridFS\Exception\FileNotFoundException) {
             throw new Genghis_HttpException;
         }
     }
