@@ -197,7 +197,7 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
     {
         $this->collCon->drop();
     }
-    // todo: index count and details are missing
+
     public function asJson()
     {
         $name  = $this->collection->getName();
@@ -205,11 +205,20 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         foreach ($colls as $coll) {
             if ($coll->getName() == $name) {
                 $stats = $this->stats();
+
+                // unset wiredTiger variables to minimize json output as the data is not displayed
+                unset($stats['wiredTiger']);
+
+                // get collection indexes for presentation
+                $indexDetails = array();
+                foreach ($stats['indexDetails'] as $indexDetail)
+                    $indexDetails[] = json_decode($indexDetail['metadata']['infoObj'], true);
+
                 return array(
                     'id'      => $coll->getName(),
                     'name'    => $coll->getName(),
-                    'count'   => $stats['count'], //$coll->count(),
-                    'indexes' => 0, // $coll->getIndexInfo(),
+                    'count'   => $stats['count'],
+                    'indexes' => $indexDetails,
                     'stats'   => $stats,
                 );
             }
