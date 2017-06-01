@@ -1,15 +1,15 @@
 # This is Genghis, Ported for PHP7
-### with the latest PECL MongoDB driver extension
+### With the latest PECL MongoDB driver extension
 
 This version of the Genghis app has been ported from the old deprecated Mongo PHP extension to the new MongoDB extension, adding support for PHP7. This version can also run on PHP5.6. This version also includes the unchanged state of the Ruby version.
 
 ### Updated installation requirements (PHP version)
 
-Since best pratcice for the new MongoDB extension is to use the [MongoDB driver library](https://packagist.org/packages/mongodb/mongodb) you will need to run "composer update" to install the extra dependencies in addition to installing the MingoDB extension.
+Since best practice for the new MongoDB extension is to use the [MongoDB driver library](https://packagist.org/packages/mongodb/mongodb) you will need to run "composer update" to install the extra dependencies in addition to installing the MingoDB extension.
 
 #### Simple installation steps
 - With PHP Pear installed, run "sudo pecl install mongodb"
-- Add "extension=mongodb.so" at the botton of your php.ini
+- Add "extension=mongodb.so" at the bottom of your php.ini
 - With Composer installed on the server, run "composer update" from the folder where genghis.php and composer.json is located
 
 This port has been made by [Henrik Algmark](https://github.com/henkealg) and distributed under the [MIT License](http://creativecommons.org/licenses/MIT/) just as the original version.

@@ -1,6 +1,6 @@
 <?php
 
-@include 'vendor/autoloads.php';
+@include 'vendor/autoload.php';
 
 class Genghis_Api extends Genghis_App
 {
