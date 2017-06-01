@@ -153,7 +153,7 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
 
             $dbs = $this->getDatabaseNames();
             return array_merge($server, array(
-                'size'      => 1, // todo: size set to 0 as of now. where do we get this value?
+                'size'      => 0, // todo: size set to 0 as of now. where do we get this value?
                 'count'     => count($dbs),
                 'databases' => $dbs,
             ));
