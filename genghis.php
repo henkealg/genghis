@@ -11,7 +11,7 @@
  */
 define('GENGHIS_VERSION', "2.3.11");
 
-require_once 'vendor/autoload.php';
+@include 'vendor/autoloads.php';
 
 class Genghis_Api extends Genghis_App
 {
@@ -111,7 +111,8 @@ class Genghis_Api extends Genghis_App
             $alerts[] = array(
                 'level' => 'error',
                 'msg'   => '<h4>Mongo PHP class library not found.</h4> ' .
-                           'Have you installed and enabled the <strong>Mongo drivers & runned conposer update</strong>?',
+                           'Have you installed and enabled the <strong>Mongo PHP drivers (sudo pecl install mongodb)</strong>
+                            and installed the <strong>MongoDB driver library</strong> (composer update)?',
             );
         }
 
@@ -1189,7 +1190,7 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
     {
         $this->collCon->drop();
     }
-    // todo: index count and details are missing
+
     public function asJson()
     {
         $name  = $this->collection->getName();
@@ -1197,23 +1198,20 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         foreach ($colls as $coll) {
             if ($coll->getName() == $name) {
                 $stats = $this->stats();
+
                 // unset wiredTiger variables to minimize json output as the data is not displayed
                 unset($stats['wiredTiger']);
-                //print_r($stats['indexDetails']);
-                //die();
+
+                // get collection indexes for presentation
                 $indexDetails = array();
                 foreach ($stats['indexDetails'] as $indexDetail)
-                {
-                    $detail = json_decode($indexDetail['metadata']['infoObj'], true);
-                    $indexDetails[] = $detail;
-                }
-                //print_r($indexDetails);
-                //die();
+                    $indexDetails[] = json_decode($indexDetail['metadata']['infoObj'], true);
+
                 return array(
                     'id'      => $coll->getName(),
                     'name'    => $coll->getName(),
-                    'count'   => $stats['count'], //$coll->count(),
-                    'indexes' => $indexDetails, // $coll->getIndexInfo(),
+                    'count'   => $stats['count'],
+                    'indexes' => $indexDetails,
                     'stats'   => $stats,
                 );
             }
