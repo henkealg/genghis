@@ -90,6 +90,7 @@ file tmp_dir+'style.css' => FileList[
        * http://genghisapp.com
        *
        * @author Justin Hileman <justin@justinhileman.info>
+       * Ported for php7 by Henrik Algmark  <henrik@appendus.se>
        */
     doc
 
@@ -192,7 +193,8 @@ file tmp_dir+'index.html.mustache' => FileList[
 
     index = ERB.new(File.read('src/templates/index.html.mustache.erb')).result(binding)
 
-    file << (ENV['NOCOMPRESS'] ? index : packer.compress(index))
+    file << index
+    # file << (ENV['NOCOMPRESS'] ? index : packer.compress(index))
   end
 end
 
@@ -204,7 +206,8 @@ file tmp_dir+'error.html.mustache' => FileList[tmp_dir, 'src/templates/index.htm
 
     tpl = ERB.new(File.read('src/templates/error.html.mustache.erb')).result(binding)
 
-    file << (ENV['NOCOMPRESS'] ? tpl : packer.compress(tpl))
+    file << tpl
+    # file << (ENV['NOCOMPRESS'] ? tpl : packer.compress(tpl))
   end
 end
 

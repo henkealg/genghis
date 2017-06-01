@@ -25,6 +25,8 @@ class Genghis_Json
 
     private static function doEncode($object)
     {
+        //print_r($object);
+        //die($object->milliseconds);
         if (is_object($object) && $object instanceof Genghis_JsonEncodable) {
             $object = $object->asJson();
         }
@@ -34,6 +36,7 @@ class Genghis_Json
             // Genghisify Mongo objects.
             switch (get_class($object)) {
                 case 'MongoId':
+                case 'MongoDB\\BSON\\ObjectID':
                     return array(
                         '$genghisType' => 'ObjectId',
                         '$value' => (string) $object
@@ -51,6 +54,17 @@ class Genghis_Json
                         '$value'       => $str       // 2012-08-30T06:35:22.056Z
                     );
 
+                case 'MongoDB\\BSON\\UTCDateTime':
+                    $dateTime = $object->toDateTime();
+                    $str = $dateTime->format('Y-m-d\TH:i:s.u') . 'Z';
+
+                    return array(
+                        '$genghisType' => 'ISODate',
+                        '$value'       => $str       // 2012-08-30T06:35:22.056Z
+                    );
+
+
+
                 case 'MongoRegex':
                     return array(
                         '$genghisType' => 'RegExp',
@@ -61,11 +75,12 @@ class Genghis_Json
                     );
 
                 case 'MongoBinData':
+                case 'MongoDB\\BSON\\Binary':
                     return array(
                         '$genghisType' => 'BinData',
                         '$value' => array(
-                            '$subtype' => $object->type,
-                            '$binary'  => base64_encode($object->bin),
+                            '$subtype' => $object->getType(),
+                            '$binary'  => base64_encode($object->getData()),
                         )
                     );
             }
@@ -105,15 +120,18 @@ class Genghis_Json
                 $value = self::getProp($object, 'value');
                 switch ($type) {
                     case 'ObjectId':
-                        return new MongoId($value);
+                        return new \MongoDB\BSON\ObjectID($value);
 
                     case 'ISODate':
                         if ($value === null) {
-                            return new MongoDate;
+                            return new MongoDB\BSON\UTCDateTime();
                         } else {
                             $date = new DateTime($value);
 
-                            return new MongoDate($date->getTimestamp(), (int) $date->format('u'));
+                            // milliseconds are lost when updating a document due to this calculation
+                            // I can´t see any better way of solving this conversion
+                            $seconds = 1000 * $date->getTimestamp();
+                            return new MongoDB\BSON\UTCDateTime($seconds);
                         }
 
                     case 'RegExp':
@@ -122,11 +140,14 @@ class Genghis_Json
 
                         return new MongoRegex(sprintf('/%s/%s', $pattern, $flags));
 
-                    case 'BinData':
+                        // change untested, function unused
+                        // edit button for chunks as been disabled
+                        case 'BinData':
                         $data = base64_decode(self::getProp($value, 'binary'));
                         $type = self::getProp($value, 'subtype');
 
-                        return new MongoBinData($data, $type);
+                        return new MongoDB\BSON\Binary($data, $type);
+                        // return new MongoBinData($data, $type);
                 }
             } else {
                 foreach ($object as $prop => $value) {

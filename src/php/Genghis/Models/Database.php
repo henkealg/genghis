@@ -29,13 +29,15 @@ class Genghis_Models_Database implements ArrayAccess, Genghis_JsonEncodable
     public function offsetGet($name)
     {
         if (!isset($this->collections[$name])) {
-            $coll = $this->getMongoCollection($name);
 
-            if ($coll === null) {
+             $collInfo = $this->getMongoCollection($name);
+            if ($collInfo === null) {
                 throw new Genghis_HttpException(404, sprintf("Collection '%s' not found in '%s'", $name, $this->name));
             }
 
-            $this->collections[$name] = new Genghis_Models_Collection($this, $coll);
+            $collCon = $this->getCollection($name);
+            $this->collections[$name] = new Genghis_Models_Collection($this, $collInfo, $collCon);
+
         }
 
         return $this->collections[$name];
@@ -51,13 +53,17 @@ class Genghis_Models_Database implements ArrayAccess, Genghis_JsonEncodable
         $this[$name]->drop();
     }
 
+    public function getCollection($collectionName)
+    {
+        return new MongoDB\Collection($this->getDatabase()->getManager(), $this->name, $collectionName);
+    }
+
     public function getCollectionNames()
     {
         $colls = array();
         foreach ($this->getMongoCollections() as $coll) {
-            $colls[] = $coll->getName();
+             $colls[] = $coll->getName();
         }
-
         return $colls;
     }
 
@@ -113,9 +119,8 @@ class Genghis_Models_Database implements ArrayAccess, Genghis_JsonEncodable
     private function getDatabase()
     {
         if (!isset($this->database)) {
-            $this->database = $this->server->getConnection()->selectDB($this->name);
+            $this->database = $this->server->getConnection()->selectDatabase($this->name);
         }
-
         return $this->database;
     }
 
@@ -128,10 +133,19 @@ class Genghis_Models_Database implements ArrayAccess, Genghis_JsonEncodable
         }
     }
 
+    // expose private getMongoCollection() for use in Genghis_Models_Server when creating new databases
+    // todo: use another approach to get rid of this public class
+    public function extGetMongoCollection($name)
+    {
+        return $this->getMongoCollection($name);
+    }
+
     private function getMongoCollections()
     {
         if (!isset($this->mongoCollections)) {
-            $this->mongoCollections = $this->getDatabase()->listCollections();
+            $collections = $this->getDatabase()->listCollections();
+            foreach ( $collections as $c ) $this->mongoCollections[] = $c;
+
         }
 
         return $this->mongoCollections;
@@ -139,7 +153,9 @@ class Genghis_Models_Database implements ArrayAccess, Genghis_JsonEncodable
 
     private function stats()
     {
-        return $this->getDatabase()->command(array('dbStats' => 1));
+        $stats = $this->getDatabase()->command(array('dbStats' => 1));
+        foreach ($stats as $stat) $s = $stat;
+        return isset($s) && !empty($s) ? $s : array();
     }
 
     private function cleanError($msg)
