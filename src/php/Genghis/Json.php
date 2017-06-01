@@ -75,11 +75,12 @@ class Genghis_Json
                     );
 
                 case 'MongoBinData':
+                case 'MongoDB\\BSON\\Binary':
                     return array(
                         '$genghisType' => 'BinData',
                         '$value' => array(
-                            '$subtype' => $object->type,
-                            '$binary'  => base64_encode($object->bin),
+                            '$subtype' => $object->getType(),
+                            '$binary'  => base64_encode($object->getData()),
                         )
                     );
             }
@@ -143,7 +144,7 @@ class Genghis_Json
                         $data = base64_decode(self::getProp($value, 'binary'));
                         $type = self::getProp($value, 'subtype');
 
-                        // untested
+                        // change untested
                         return new MongoDB\BSON\Binary($data, $type);
                         // return new MongoBinData($data, $type);
                 }
