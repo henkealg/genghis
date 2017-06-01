@@ -140,11 +140,12 @@ class Genghis_Json
 
                         return new MongoRegex(sprintf('/%s/%s', $pattern, $flags));
 
-                    case 'BinData':
+                        // change untested, function unused
+                        // edit button for chunks as been disabled
+                        case 'BinData':
                         $data = base64_decode(self::getProp($value, 'binary'));
                         $type = self::getProp($value, 'subtype');
 
-                        // change untested
                         return new MongoDB\BSON\Binary($data, $type);
                         // return new MongoBinData($data, $type);
                 }
