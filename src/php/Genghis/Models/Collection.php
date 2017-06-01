@@ -69,12 +69,12 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
     public function getFile($id)
     {
         $mongoId = $this->thunkMongoId($id);
-        if (!$mongoId instanceof MongoId) {
+        if (!$mongoId instanceof MongoDB\BSON\ObjectID) {
             // for some reason this only works with MongoIds?
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
-        $file = $this->getGrid()->get($mongoId);
+        $file = $this->getGrid()->openDownloadStream($mongoId);
         if (!$file) {
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
@@ -109,16 +109,21 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
             $extra[$key] = $val;
         }
 
-        // todo: this here is where we are at now
-        $id = $grid->storeBytes($this->decodeFile($file), $extra);
+        // create a stream resource from the file string
+        $fileStream = fopen('data://text/plain;base64,' . base64_encode($file),'r');
 
-        return $this->findDocument($id);
+        // todo: this here
+        // $id = $grid->storeBytes($this->decodeFile($file), $extra);
+        $id = $grid->uploadFromStream($doc->filename, $fileStream , $extra);
+
+
+        return $this->findDocument( (string)$id );
     }
 
     public function deleteFile($id)
     {
         $mongoId = $this->thunkMongoId($id);
-        if (!$mongoId instanceof MongoId) {
+        if (!$mongoId instanceof MongoDB\BSON\ObjectID) {
             // for some reason this only works with MongoIds?
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
@@ -220,9 +225,6 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         if ($id[0] == '~') {
             return Genghis_Json::decode(base64_decode(substr($id, 1)));
         }
-
-        //if(isset($id->$oid))
-        //    return $id->$oid;
 
         return preg_match('/^[a-f0-9]{24}$/i', $id) ? new \MongoDB\BSON\ObjectID($id) : $id;
     }

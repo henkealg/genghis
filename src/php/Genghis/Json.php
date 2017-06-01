@@ -25,6 +25,8 @@ class Genghis_Json
 
     private static function doEncode($object)
     {
+        //print_r($object);
+        //die($object->milliseconds);
         if (is_object($object) && $object instanceof Genghis_JsonEncodable) {
             $object = $object->asJson();
         }
@@ -34,11 +36,6 @@ class Genghis_Json
             // Genghisify Mongo objects.
             switch (get_class($object)) {
                 case 'MongoId':
-                    return array(
-                        '$genghisType' => 'ObjectId',
-                        '$value' => (string) $object
-                    );
-
                 case 'MongoDB\\BSON\\ObjectID':
                     return array(
                         '$genghisType' => 'ObjectId',
@@ -56,6 +53,17 @@ class Genghis_Json
                         '$genghisType' => 'ISODate',
                         '$value'       => $str       // 2012-08-30T06:35:22.056Z
                     );
+
+                case 'MongoDB\\BSON\\UTCDateTime':
+                    $dateTime = $object->toDateTime();
+                    $str = $dateTime->format('Y-m-d\TH:i:s.u') . 'Z';
+
+                    return array(
+                        '$genghisType' => 'ISODate',
+                        '$value'       => $str       // 2012-08-30T06:35:22.056Z
+                    );
+
+
 
                 case 'MongoRegex':
                     return array(
@@ -115,11 +123,14 @@ class Genghis_Json
 
                     case 'ISODate':
                         if ($value === null) {
-                            return new MongoDate;
+                            return new MongoDB\BSON\UTCDateTime();
                         } else {
                             $date = new DateTime($value);
 
-                            return new MongoDate($date->getTimestamp(), (int) $date->format('u'));
+                            // milliseconds are lost when updating a document due to this calculation
+                            // I can´t see any better way of solving this conversion
+                            $seconds = 1000 * $date->getTimestamp();
+                            return new MongoDB\BSON\UTCDateTime($seconds);
                         }
 
                     case 'RegExp':
@@ -132,7 +143,9 @@ class Genghis_Json
                         $data = base64_decode(self::getProp($value, 'binary'));
                         $type = self::getProp($value, 'subtype');
 
-                        return new MongoBinData($data, $type);
+                        // untested
+                        return new MongoDB\BSON\Binary($data, $type);
+                        // return new MongoBinData($data, $type);
                 }
             } else {
                 foreach ($object as $prop => $value) {
