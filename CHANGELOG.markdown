@@ -1,3 +1,9 @@
+## v2.4.1-beta (Unofficial)
+
+ * Fixed an issue with regex based document searches.
+ * PHP version ported to the latest PECL MongoDB driver extension, adding support for PHP7
+
+
 ## v2.4-beta (Unofficial)
 
  * PHP version ported to the latest PECL MongoDB driver extension, adding support for PHP7
