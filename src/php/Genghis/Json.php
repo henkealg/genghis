@@ -138,7 +138,7 @@ class Genghis_Json
                         $pattern = self::getProp($value, 'pattern');
                         $flags   = self::getProp($value, 'flags');
 
-                        return new MongoRegex(sprintf('/%s/%s', $pattern, $flags));
+                        return new MongoDB\BSON\Regex($pattern, $flags);
 
                         // change untested, function unused
                         // edit button for chunks as been disabled
@@ -147,7 +147,6 @@ class Genghis_Json
                         $type = self::getProp($value, 'subtype');
 
                         return new MongoDB\BSON\Binary($data, $type);
-                        // return new MongoBinData($data, $type);
                 }
             } else {
                 foreach ($object as $prop => $value) {
