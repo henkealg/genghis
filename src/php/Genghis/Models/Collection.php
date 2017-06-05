@@ -4,13 +4,11 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
 {
     public $database;
     public $collection;
-    public $collCon;
 
-    public function __construct(Genghis_Models_Database $database, MongoDB\Model\CollectionInfo $collection, MongoDB\Collection $collCon)
+    public function __construct(Genghis_Models_Database $database, MongoCollection $collection)
     {
         $this->database   = $database;
         $this->collection = $collection;
-        $this->collCon = $collCon;
     }
 
     public function offsetExists($id)
@@ -41,14 +39,12 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         $query = array('_id' => $this->thunkMongoId($id));
 
         try {
-            // updates no longer uses safe mode. prior self::safe()
-            $result = $this->collCon->updateOne($query, array('$set' => $doc));
+            $result = $this->collection->update($query, $doc, self::safe());
         } catch (MongoCursorException $e) {
             throw new Genghis_HttpException(400, ucfirst($e->doc['err']));
         }
 
-        $result = $result->isAcknowledged();
-        if (empty($result) || !$result) {
+        if (!(isset($result['ok']) && $result['ok'])) {
             throw new Genghis_HttpException;
         }
     }
@@ -58,10 +54,9 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         $this->findDocument($id);
 
         $query  = array('_id' => $this->thunkMongoId($id));
-        $result = $this->collCon->deleteOne($query);
+        $result = $this->collection->remove($query, self::safe());
 
-        $result = $result->isAcknowledged();
-        if (empty($result) || !$result) {
+        if (!(isset($result['ok']) && $result['ok'])) {
             throw new Genghis_HttpException;
         }
     }
@@ -69,19 +64,15 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
     public function getFile($id)
     {
         $mongoId = $this->thunkMongoId($id);
-        if (!$mongoId instanceof MongoDB\BSON\ObjectID) {
+        if (!$mongoId instanceof MongoId) {
             // for some reason this only works with MongoIds?
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
-        $file = $this->getGrid()->openDownloadStream($mongoId);
+        $file = $this->getGrid()->get($mongoId);
         if (!$file) {
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
-
-        // make response into an array to include the filename
-        $doc = $this->getGrid()->findOne(array('_id' => $mongoId));
-        $file = array('name' => $doc['filename'], 'stream' => $file);
 
         return $file;
     }
@@ -113,30 +104,29 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
             $extra[$key] = $val;
         }
 
-        // create a stream resource from the file string
-        $fileStream = fopen('data://text/plain;base64,' . base64_encode($file),'r');
+        $id = $grid->storeBytes($this->decodeFile($file), $extra);
 
-        $id = $grid->uploadFromStream($doc->filename, $fileStream , $extra);
-
-        return $this->findDocument( (string)$id );
+        return $this->findDocument($id);
     }
 
     public function deleteFile($id)
     {
         $mongoId = $this->thunkMongoId($id);
-        if (!$mongoId instanceof MongoDB\BSON\ObjectID) {
+        if (!$mongoId instanceof MongoId) {
+            // for some reason this only works with MongoIds?
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
         $grid = $this->getGrid();
 
-        $file = $grid->findOne(array('_id' => $mongoId));
-        if (empty($file)) {
+        // For some reason it'll happily delete something that doesn't exist :-/
+        $file = $grid->get($mongoId);
+        if (!$file) {
             throw new Genghis_HttpException(404, sprintf("GridFS file '%s' not found", $id));
         }
 
         $result = $grid->delete($mongoId);
-        if ($result instanceof MongoDB\GridFS\Exception\FileNotFoundException) {
+        if (!$result) {
             throw new Genghis_HttpException;
         }
     }
@@ -150,14 +140,12 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         }
 
         $offset = Genghis_Api::PAGE_LIMIT * ($page - 1);
+        $cursor = $this->collection
+            ->find($query ? $query : array())
+            ->limit(Genghis_Api::PAGE_LIMIT)
+            ->skip($offset);
 
-        // need to make an exclusive query to get the count as stuff like count($cursor->toArray()) is not working
-        $count = $this->collCon
-            ->count($query ? $query : array());
-
-        $cursor = $this->collCon
-            ->find($query ? $query : array(),
-                array('limit' => Genghis_Api::PAGE_LIMIT, 'skip' => $offset));
+        $count = $cursor->count();
 
         if (is_array($count) && isset($count['errmsg'])) {
             throw new Genghis_HttpException(400, $count['errmsg']);
@@ -175,27 +163,22 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
 
     public function insert($data)
     {
-        // todo: improved error handling
         try {
-            $result = $this->collCon->insertOne($data);
+            $result = $this->collection->insert($data, self::safe());
         } catch (MongoCursorException $e) {
             throw new Genghis_HttpException(400, ucfirst($e->doc['err']));
         }
 
-        $results = $result->isAcknowledged();
-        if (empty($results) || !$results) {
+        if (!(isset($result['ok']) && $result['ok'])) {
             throw new Genghis_HttpException;
         }
-
-        // add the document id to the results data
-        $data->_id = $result->getInsertedId();
 
         return $data;
     }
 
     public function drop()
     {
-        $this->collCon->drop();
+        $this->collection->drop();
     }
 
     public function asJson()
@@ -204,22 +187,12 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
         $colls = $this->database->database->listCollections();
         foreach ($colls as $coll) {
             if ($coll->getName() == $name) {
-                $stats = $this->stats();
-
-                // unset wiredTiger variables to minimize json output as the data is not displayed
-                unset($stats['wiredTiger']);
-
-                // get collection indexes for presentation
-                $indexDetails = array();
-                foreach ($stats['indexDetails'] as $indexDetail)
-                    $indexDetails[] = json_decode($indexDetail['metadata']['infoObj'], true);
-
                 return array(
                     'id'      => $coll->getName(),
                     'name'    => $coll->getName(),
-                    'count'   => $stats['count'],
-                    'indexes' => $indexDetails,
-                    'stats'   => $stats,
+                    'count'   => $coll->count(),
+                    'indexes' => $coll->getIndexInfo(),
+                    'stats'   => $this->stats(),
                 );
             }
         }
@@ -229,17 +202,20 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
 
     private function thunkMongoId($id)
     {
+        if ($id instanceof MongoId) {
+            return $id;
+        }
 
         if ($id[0] == '~') {
             return Genghis_Json::decode(base64_decode(substr($id, 1)));
         }
 
-        return preg_match('/^[a-f0-9]{24}$/i', $id) ? new \MongoDB\BSON\ObjectID($id) : $id;
+        return preg_match('/^[a-f0-9]{24}$/i', $id) ? new MongoId($id) : $id;
     }
 
     private function findDocument($id)
     {
-        $doc = $this->collCon->findOne(array('_id' => $this->thunkMongoId($id)));
+        $doc = $this->collection->findOne(array('_id' => $this->thunkMongoId($id)));
         if (!$doc) {
             throw new Genghis_HttpException(404, sprintf("Document '%s' not found in '%s'", $id, $this->collection->getName()));
         }
@@ -261,7 +237,7 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
 
         if (!isset($this->grid)) {
             $prefix = preg_replace('/\.files$/', '', $this->collection->getName());
-            $this->grid = $this->database->database->selectGridFSBucket( array('bucketName' => $prefix) );
+            $this->grid = $this->database->database->getGridFS($prefix);
         }
 
         return $this->grid;
@@ -280,9 +256,7 @@ class Genghis_Models_Collection implements ArrayAccess, Genghis_JsonEncodable
 
     private function stats()
     {
-        $stats = $this->database->database->command(array('collStats' => $this->collection->getName()));
-        foreach($stats as $stat) $s = $stat;
-        return isset($s) && !empty($s) ? $s : array();
+        return $this->database->database->command(array('collStats' => $this->collection->getName()));
     }
 
     private static function safe()

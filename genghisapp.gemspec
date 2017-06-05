@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'json',             '>= 1.7.0', '< 1.9.0'
 
   gem.add_development_dependency 'rake'
-  # gem.add_development_dependency 'active_support'
+  gem.add_development_dependency 'active_support'
   gem.add_development_dependency 'therubyracer'
   gem.add_development_dependency 'less'
   gem.add_development_dependency 'rainpress'

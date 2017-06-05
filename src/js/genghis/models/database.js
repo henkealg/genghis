@@ -5,7 +5,7 @@ Genghis.Models.Database = Genghis.Models.BaseModel.extend({
     humanSize: function() {
         var stats = this.get('stats');
         if (stats) {
-            return Genghis.Util.humanizeSize((stats.storageSize || 0) + (stats.indexSize || 0));
+            return Genghis.Util.humanizeSize((stats.fileSize || 0) + (stats.indexSize || 0));
         }
     },
     stats: function() {
@@ -16,7 +16,7 @@ Genghis.Models.Database = Genghis.Models.BaseModel.extend({
                 {name: 'Avg. object size', value: _h(stats.avgObjSize || 0) },
                 {name: 'Data size',        value: _h(stats.dataSize || 0)   },
                 {name: 'Index size',       value: _h(stats.indexSize || 0)  },
-                {name: 'Storage size',     value: _h(stats.storageSize || 0)   }
+                {name: 'Storage size',     value: _h(stats.fileSize || 0)   }
             ];
         }
     },

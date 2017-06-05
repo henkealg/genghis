@@ -42,8 +42,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     public function offsetExists($name)
     {
         $list = $this->listDBs();
-        foreach ($list as $db) {
-            if ($db->getName() === $name) {
+        foreach ($list['databases'] as $db) {
+            if ($db['name'] === $name) {
                 return true;
             }
         }
@@ -67,7 +67,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     public function getConnection()
     {
         if (!isset($this->connection)) {
-            $this->connection = new MongoDB\Client($this->dsn, array_merge($this->defaultOptions, $this->options));
+            $class = class_exists('MongoClient') ? 'MongoClient' : 'Mongo';
+            $this->connection = new $class($this->dsn, array_merge($this->defaultOptions, $this->options));
         }
 
         return $this->connection;
@@ -80,19 +81,15 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
         }
 
         try {
-            $db = $this->connection->selectDatabase($name);
+            $db = $this->connection->selectDB($name);
         } catch (Exception $e) {
             if (strpos($e->getMessage(), 'invalid name') !== false) {
                 throw new Genghis_HttpException(400, 'Invalid database name');
             }
             throw $e;
         }
-        // create a collection and then drop it again to create the actual database
-        $db->createCollection('defaultCollection');
 
-        // collection was dropped initially to create an empty database
-        // with the current php driver this is no longer possible
-        // defaultCollection stays
+        $db->selectCollection('__genghis_tmp_collection__')->drop();
 
         return $this[$name];
     }
@@ -101,8 +98,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     {
         $dbs = array();
         $list = $this->listDBs();
-        foreach ($list as $db) {
-            $dbs[] = $this[$db->getName()];
+        foreach ($list['databases'] as $db) {
+            $dbs[] = $this[$db['name']];
         }
 
         return $dbs;
@@ -112,8 +109,8 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     {
         $names = array();
         $list = $this->listDBs();
-        foreach ($list as $db) {
-            $names[] = $db->getName();
+        foreach ($list['databases'] as $db) {
+            $names[] = $db['name'];
         }
 
         return $names;
@@ -145,15 +142,17 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
 
         try {
             $res = $this->listDBs();
-            if (is_array($res) && isset($res['errmsg'])) {
+
+            if (isset($res['errmsg'])) {
                 $server['error'] = sprintf("Unable to connect to Mongo server at '%s': %s", $this->name, $res['errmsg']);
 
                 return $server;
             }
 
             $dbs = $this->getDatabaseNames();
+
             return array_merge($server, array(
-                'size'      => 0, // todo: size set to 0 as of now. where do we get this value?
+                'size'      => $res['totalSize'],
                 'count'     => count($dbs),
                 'databases' => $dbs,
             ));
@@ -233,18 +232,17 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     private function listDBs()
     {
         // Fake it if we've got a single-db connection.
-        // todo: stats returns a mongo cursor that needs to be handled
-        // todo: when is this part triggered?
         if (isset($this->db)) {
             $stats = $this->getConnection()
-                ->selectDatabase($this->db)
-                ->command(array('dbStats'));
+                ->selectDB($this->db)
+                ->command(array('dbStats' => true));
+
             return array(
                 'totalSize' => $stats['fileSize'],
                 'databases' => array(array('name' => $this->db)),
             );
         }
 
-        return $this->getConnection()->listDatabases();
+        return $this->getConnection()->listDBs();
     }
 }

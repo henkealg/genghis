@@ -4,13 +4,10 @@ class Genghis_GridFsResponse extends Genghis_Response
 {
     public function renderHeaders()
     {
-
         $this->headers['Content-type']        = 'application/octet-stream';
         $this->headers['Content-Disposition'] = 'attachment';
 
-        $filename = $this->data['name'];
-
-        if (strlen($filename) > 0) {
+        if ($filename = $this->data->getFilename()) {
             $this->headers['Content-Disposition'] .= sprintf('; filename="%s"', $filename);
         }
 
@@ -19,13 +16,13 @@ class Genghis_GridFsResponse extends Genghis_Response
 
     public function renderContent()
     {
-        // todo: a better way of handling stream to download
-        $stream = stream_get_contents($this->data['stream']);
-
-        $exp = explode(',', $stream);
-        $base64 = array_pop($exp);
-        $stream = base64_decode($base64);
-
-        echo $stream;
+        if (version_compare(Mongo::VERSION, '1.3.0', '>=')) {
+            $stream = $this->data->getResource();
+            while (!feof($stream)) {
+                echo fread($stream, 8192);
+            }
+        } else {
+            echo $this->data->getBytes();
+        }
     }
 }

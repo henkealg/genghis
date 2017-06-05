@@ -22,10 +22,8 @@ class Genghis_App
                 throw new Genghis_HttpException(500);
             }
         } catch (Genghis_HttpException $e) {
-            var_dump($e);
             $this->errorResponse($e->getMessage(), $e->getStatus())->render();
         } catch (Exception $e) {
-            var_dump($e);
             $this->errorResponse($e->getMessage())->render();
         }
     }
