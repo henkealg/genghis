@@ -1,7 +1,9 @@
-# This is Genghis, Ported for PHP7
+# This is Genghis, ported for PHP7
 ### With the latest PECL MongoDB driver extension
 
-This version of the Genghis app has been ported from the old deprecated Mongo PHP extension to the new MongoDB extension, adding support for PHP7. This version can also run on PHP5.6. This version also includes the unchanged state of the Ruby version.
+This version of the Genghis app has been ported from the old deprecated [Mongo PHP legacy extension](http://php.net/manual/en/book.mongo.php) to the new [MongoDB extension](http://php.net/manual/en/set.mongodb.php), adding support for PHP7.X. This version can also run on PHP5.6. **Note.** The Mongo legacy extension is no longer supported with this version.
+
+This version also includes the unchanged state of the Ruby version.
 
 ### Updated installation requirements (PHP version)
 
