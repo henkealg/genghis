@@ -24,8 +24,8 @@ services: mongodb
 
 before_install:
  - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
- - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
- - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini
+# - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+# - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini
  - composer update
 
 install: bundle install --without development
