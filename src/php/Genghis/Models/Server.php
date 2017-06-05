@@ -67,7 +67,7 @@ class Genghis_Models_Server implements ArrayAccess, Genghis_JsonEncodable
     public function getConnection()
     {
         if (!isset($this->connection)) {
-            $this->connection = new MongoDB\Client($this->dsn, array_merge($this->defaultOptions, $this->options));
+            $this->connection = new \MongoDB\Client($this->dsn, array_merge($this->defaultOptions, $this->options));
         }
 
         return $this->connection;
