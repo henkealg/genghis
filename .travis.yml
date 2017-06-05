@@ -23,8 +23,10 @@ services: mongodb
 # - 'sh -c "if [ ! -z $MONGO_PHP_VERSION ]; then pecl install -f mongodb-${MONGO_PHP_VERSION}; fi"'
 
 before_install:
- - composer update
  - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+ - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+ - echo "extension=mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini
+ - composer update
 
 install: bundle install --without development
 
